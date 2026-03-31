@@ -37,6 +37,10 @@ func (s *EmailService) Send(req models.EmailRequest) (string, error) {
 		Subject: req.Subject,
 	}
 
+	if req.ScheduledAt != "" {
+		params.ScheduledAt = req.ScheduledAt
+	}
+
 	sent, err := s.Client.Emails.Send(params)
 	if err != nil {
 		return "", fmt.Errorf("failed to send: %w", err)

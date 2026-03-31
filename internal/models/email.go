@@ -1,9 +1,10 @@
 package models
 
 type EmailRequest struct {
-	To      any    `json:"to"`
-	Subject string `json:"subject"`
-	Html    string `json:"html"`
+	To          any    `json:"to"`
+	Subject     string `json:"subject"`
+	Html        string `json:"html"`
+	ScheduledAt string `json:"scheduled_at"`
 }
 
 type EmailResponse struct {

@@ -18,6 +18,9 @@ func NewApiHandler(service *services.EmailService) *ApiHandler {
 
 func (h *ApiHandler) RegisterHandlers(mux *http.ServeMux) {
 	mux.HandleFunc("/", h.IndexHandler)
+	mux.HandleFunc("/index.js", func(w http.ResponseWriter, r *http.Request) {
+		http.ServeFile(w, r, "index.js")
+	})
 	mux.HandleFunc("/email", h.EmailHandler)
 }
 
@@ -49,7 +52,11 @@ func (h *ApiHandler) EmailHandler(w http.ResponseWriter, r *http.Request) {
 
 	if r.Header.Get("HX-Request") == "true" {
 		w.Header().Set("Content-Type", "text/html")
-		fmt.Fprintf(w, "Email berhasil dikirim!")
+		if req.ScheduledAt != "" {
+			fmt.Fprintf(w, "Email berhasil dijadwalkan!")
+		} else {
+			fmt.Fprintf(w, "Email berhasil dikirim!")
+		}
 		return
 	}
 

@@ -13,9 +13,16 @@
     <script src="https://unpkg.com/htmx.org@1.9.10"></script>
     <script src="https://unpkg.com/htmx.org/dist/ext/json-enc.js"></script>
 
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
     <!-- Quill Rich Text Editor -->
     <link href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet">
     <script src="https://cdn.quilljs.com/1.3.6/quill.js"></script>
+
+    <!-- Flatpickr (Datetime Picker) -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
 
     <style type="text/tailwindcss">
         @theme {
@@ -33,6 +40,11 @@
             --radius-lg: 0.5rem;
             --radius-md: calc(0.5rem - 2px);
             --radius-sm: calc(0.5rem - 4px);
+
+            --color-popover: hsl(0 0% 100%);
+            --color-popover-foreground: hsl(240 10% 3.9%);
+            --color-accent: hsl(240 4.8% 95.9%);
+            --color-accent-foreground: hsl(240 5.9% 10%);
         }
 
         @layer base {
@@ -59,6 +71,35 @@
         .ql-container.ql-snow {
             @apply border-input rounded-b-md bg-background text-sm;
             min-height: 120px;
+        }
+
+        /* Shadcn-like Flatpickr Theme Overrides */
+        .flatpickr-calendar {
+            @apply shadow-lg border border-border rounded-md bg-popover text-popover-foreground;
+            font-family: inherit;
+            margin-top: 4px;
+        }
+        .flatpickr-day.selected, .flatpickr-day.startRange, .flatpickr-day.endRange {
+            @apply bg-primary text-primary-foreground border-primary;
+            border-radius: 4px;
+        }
+        .flatpickr-day:hover {
+            @apply bg-accent text-accent-foreground;
+        }
+        .flatpickr-months .flatpickr-month {
+            @apply text-foreground fill-foreground;
+        }
+        .flatpickr-current-month .flatpickr-monthDropdown-months {
+            @apply font-semibold;
+        }
+        .flatpickr-time {
+            @apply border-t border-border;
+        }
+        .flatpickr-innerContainer {
+            @apply p-2;
+        }
+        .flatpickr-calendar.static {
+            top: 100% !important;
         }
     </style>
 </head>
@@ -96,11 +137,24 @@
                 </div>
 
                 <div class="space-y-2">
-                    <label for="editor" class="text-sm font-medium leading-none">Konten</label>
+                    <label for="html" class="text-sm font-medium leading-none">Konten</label>
                     <div id="editor-container">
                         <div id="editor"></div>
                     </div>
                     <input type="hidden" id="html" name="html" required>
+                </div>
+
+                <div class="space-y-4">
+                    <div class="space-y-2">
+                        <label class="text-sm font-medium leading-none">Jadwalkan Pengiriman (Opsional)</label>
+                        <div id="datepicker-trigger" 
+                            class="flex h-10 w-full cursor-pointer items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background hover:bg-accent hover:text-accent-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2">
+                            <span id="date-label" class="text-muted-foreground">Pilih tanggal dan waktu...</span>
+                            <i data-lucide="calendar" class="h-4 w-4 opacity-50"></i>
+                        </div>
+                        <input type="hidden" id="scheduled_at" name="scheduled_at">
+                        <p class="text-[0.8rem] text-muted-foreground">Biarkan kosong untuk kirim sekarang.</p>
+                    </div>
                 </div>
 
                 <button type="submit" id="submitBtn"
@@ -120,56 +174,8 @@
         </div>
     </div>
 
-    <script>
-        var quill = new Quill('#editor', {
-            theme: 'snow',
-            placeholder: 'Tulis konten email di sini...',
-            modules: {
-                toolbar: [
-                    ['bold', 'italic', 'underline'],
-                    [{ 'list': 'ordered' }, { 'list': 'bullet' }],
-                    ['link', 'clean']
-                ]
-            }
-        });
+    <script src="index.js"></script>
 
-        quill.on('text-change', function () {
-            const html = quill.root.innerHTML;
-            if (quill.getText().trim().length === 0) {
-                document.getElementById('html').value = "";
-            } else {
-                document.getElementById('html').value = html;
-            }
-        });
-
-        document.body.addEventListener('htmx:beforeRequest', function () {
-            document.getElementById('submitBtn').disabled = true;
-            document.getElementById('response').classList.add('hidden');
-
-            const html = quill.root.innerHTML;
-            if (quill.getText().trim().length === 0) {
-                document.getElementById('html').value = "";
-            } else {
-                document.getElementById('html').value = html;
-            }
-        });
-
-        document.body.addEventListener('htmx:afterRequest', function (evt) {
-            document.getElementById('submitBtn').disabled = false;
-            const resp = document.getElementById('response');
-            const alert = document.getElementById('alert-container');
-            resp.classList.remove('hidden');
-
-            if (evt.detail.successful) {
-                alert.className = "relative w-full rounded-lg border border-green-200 bg-green-50 p-4 text-green-800";
-                document.getElementById('emailForm').reset();
-                quill.setContents([]);
-            } else {
-                alert.className = "relative w-full rounded-lg border border-red-200 bg-red-50 p-4 text-red-800";
-                document.getElementById('response-msg').innerText = "Error: " + (evt.detail.xhr.responseText || "Unknown error");
-            }
-        });
-    </script>
 </body>
 
 </html>

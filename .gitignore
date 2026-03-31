@@ -9,3 +9,4 @@ bin/
 dist/
 vendor/
 .DS_Store
+scheduler
