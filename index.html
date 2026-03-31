@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Email Scheduler | Go + HTMX</title>
+
+    <!-- Tailwind CSS v4 Play CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+
+    <!-- HTMX and JSON Extension -->
+    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+    <script src="https://unpkg.com/htmx.org/dist/ext/json-enc.js"></script>
+
+    <!-- Quill Rich Text Editor -->
+    <link href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet">
+    <script src="https://cdn.quilljs.com/1.3.6/quill.js"></script>
+
+    <style type="text/tailwindcss">
+        @theme {
+            --color-border: hsl(240 5.9% 90%);
+            --color-input: hsl(240 5.9% 90%);
+            --color-ring: hsl(240 5.9% 10%);
+            --color-background: hsl(0 0% 100%);
+            --color-foreground: hsl(240 10% 3.9%);
+            --color-primary: hsl(240 5.9% 10%);
+            --color-primary-foreground: hsl(0 0% 98%);
+            --color-muted: hsl(240 4.8% 95.9%);
+            --color-muted-foreground: hsl(240 3.8% 46.1%);
+            --color-card: hsl(0 0% 100%);
+            --color-card-foreground: hsl(240 10% 3.9%);
+            --radius-lg: 0.5rem;
+            --radius-md: calc(0.5rem - 2px);
+            --radius-sm: calc(0.5rem - 4px);
+        }
+
+        @layer base {
+            * {
+                @apply border-border;
+            }
+            body {
+                @apply bg-background text-foreground;
+                font-feature-settings: "rlig" 1, "calt" 1;
+            }
+        }
+
+        .htmx-indicator {
+            display: none;
+        }
+        .htmx-request .htmx-indicator {
+            display: inline-block;
+        }
+
+        /* Quill Custom Styling to match Shadcn-like UI */
+        .ql-toolbar.ql-snow {
+            @apply border-input rounded-t-md bg-slate-50/50;
+        }
+        .ql-container.ql-snow {
+            @apply border-input rounded-b-md bg-background text-sm;
+            min-height: 120px;
+        }
+    </style>
+</head>
+
+<body class="min-h-screen flex items-center justify-center bg-slate-50/50 p-4">
+
+    <div class="w-full max-w-md bg-card text-card-foreground rounded-lg border shadow-sm">
+        <!-- Card Header -->
+        <div class="flex flex-col space-y-1.5 p-6">
+            <h3 class="text-2xl font-semibold leading-none tracking-tight">Email Scheduler</h3>
+            <p class="text-sm text-muted-foreground">Kirim email cepat dengan infrastruktur Go & Resend.</p>
+        </div>
+
+        <!-- Card Content -->
+        <div class="p-6 pt-0">
+            <form hx-post="/email" hx-ext="json-enc" hx-target="#response-msg" hx-swap="innerHTML"
+                hx-indicator="#loading" id="emailForm" class="space-y-4">
+
+                <div class="space-y-2">
+                    <label for="to"
+                        class="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                        Email Penerima
+                    </label>
+                    <input type="text" id="to" name="to"
+                        class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                        placeholder="user@example.com, admin@example.com" required>
+                    <p class="text-[0.8rem] text-muted-foreground">Pisahkan dengan koma untuk banyak tujuan.</p>
+                </div>
+
+                <div class="space-y-2">
+                    <label for="subject" class="text-sm font-medium leading-none">Subjek</label>
+                    <input type="text" id="subject" name="subject"
+                        class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                        placeholder="Subject" required>
+                </div>
+
+                <div class="space-y-2">
+                    <label for="editor" class="text-sm font-medium leading-none">Konten</label>
+                    <div id="editor-container">
+                        <div id="editor"></div>
+                    </div>
+                    <input type="hidden" id="html" name="html" required>
+                </div>
+
+                <button type="submit" id="submitBtn"
+                    class="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2 w-full">
+                    Kirim Email
+                    <span id="loading" class="htmx-indicator ml-2">...</span>
+                </button>
+            </form>
+        </div>
+
+        <!-- Card Footer (Response) -->
+        <div id="response" class="p-6 pt-0 hidden">
+            <div id="alert-container"
+                class="relative w-full rounded-lg border p-4 [&>svg~*]:pl-7 [&>svg]:absolute [&>svg]:left-4 [&>svg]:top-4 [&>svg]:text-foreground">
+                <div id="response-msg" class="text-sm font-medium"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        var quill = new Quill('#editor', {
+            theme: 'snow',
+            placeholder: 'Tulis konten email di sini...',
+            modules: {
+                toolbar: [
+                    ['bold', 'italic', 'underline'],
+                    [{ 'list': 'ordered' }, { 'list': 'bullet' }],
+                    ['link', 'clean']
+                ]
+            }
+        });
+
+        quill.on('text-change', function () {
+            const html = quill.root.innerHTML;
+            if (quill.getText().trim().length === 0) {
+                document.getElementById('html').value = "";
+            } else {
+                document.getElementById('html').value = html;
+            }
+        });
+
+        document.body.addEventListener('htmx:beforeRequest', function () {
+            document.getElementById('submitBtn').disabled = true;
+            document.getElementById('response').classList.add('hidden');
+
+            const html = quill.root.innerHTML;
+            if (quill.getText().trim().length === 0) {
+                document.getElementById('html').value = "";
+            } else {
+                document.getElementById('html').value = html;
+            }
+        });
+
+        document.body.addEventListener('htmx:afterRequest', function (evt) {
+            document.getElementById('submitBtn').disabled = false;
+            const resp = document.getElementById('response');
+            const alert = document.getElementById('alert-container');
+            resp.classList.remove('hidden');
+
+            if (evt.detail.successful) {
+                alert.className = "relative w-full rounded-lg border border-green-200 bg-green-50 p-4 text-green-800";
+                document.getElementById('emailForm').reset();
+                quill.setContents([]);
+            } else {
+                alert.className = "relative w-full rounded-lg border border-red-200 bg-red-50 p-4 text-red-800";
+                document.getElementById('response-msg').innerText = "Error: " + (evt.detail.xhr.responseText || "Unknown error");
+            }
+        });
+    </script>
+</body>
+
+</html>
