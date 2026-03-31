@@ -53,6 +53,23 @@ A lightweight, minimal web application for scheduling and sending emails using G
    ```
    The server will start at `http://localhost:8080`.
 
+### 🐳 Docker Usage
+
+Alternatively, you can run the application using Docker and Docker Compose:
+
+1. **Build and run with Docker Compose**
+   ```bash
+   docker compose up -d
+   ```
+
+2. **Access the application**
+   The application will be available at `http://localhost:8080`.
+
+3. **Stop the application**
+   ```bash
+   docker compose down
+   ```
+
 ## 📁 Project Structure
 
 ```text
@@ -60,10 +77,13 @@ A lightweight, minimal web application for scheduling and sending emails using G
 │   ├── handlers/    # HTTP Route handlers (Form & JSON parsing)
 │   ├── models/      # Data structures for email requests
 │   └── services/    # Resend API service implementation
-├── main.go          # Server initialization and env loading
-├── index.html       # Minimal frontend with scheduling support
-├── go.mod           # Go dependencies
-└── .env             # Configuration (API keys, ports)
+├── main.go               # Server initialization and env loading
+├── index.html            # Minimal frontend with scheduling support
+├── Dockerfile            # Docker configuration for building the image
+├── docker-compose.yaml   # Docker Compose for easy deployment
+├── .dockerignore         # Docker ignore rules
+├── go.mod                # Go dependencies
+└── .env                  # Configuration (API keys, ports)
 ```
 
 ## 📝 API Endpoints

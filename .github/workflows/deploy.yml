@@ -54,7 +54,8 @@ jobs:
             echo "RESEND_CLIENT=${{ secrets.RESEND_CLIENT }}" >> .env
             echo "RESEND_FROM='${{ secrets.RESEND_FROM }}'" >> .env
 
-            go build -o go-scheduler main.go
-            
-            sudo systemctl restart go-scheduler
-            sudo systemctl status go-scheduler --no-pager
+            # Build and run using Docker-compose
+            docker-compose up --build -d
+
+            # Clean up old images to save space
+            docker image prune -f
