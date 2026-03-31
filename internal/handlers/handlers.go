@@ -7,6 +7,7 @@ import (
 	"go-scheduler/internal/services"
 	"net/http"
 	"strings"
+	"time"
 )
 
 type ApiHandler struct {
@@ -45,7 +46,6 @@ func (h *ApiHandler) EmailHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	} else {
-		// Fallback to form data
 		if err := r.ParseForm(); err != nil {
 			http.Error(w, "Failed to parse form: "+err.Error(), http.StatusBadRequest)
 			return
@@ -56,15 +56,29 @@ func (h *ApiHandler) EmailHandler(w http.ResponseWriter, r *http.Request) {
 		req.ScheduledAt = r.FormValue("scheduled_at")
 	}
 
-	// Normalize ScheduledAt to ISO 8601 if needed
 	if req.ScheduledAt != "" {
-		// Browser datetime-local sends "YYYY-MM-DDTHH:MM" or "YYYY-MM-DDTHH:MM:SS"
-		// Resend expects ISO 8601 e.g. "2024-03-22T10:00:00Z"
-		if !strings.Contains(req.ScheduledAt, "Z") && !strings.Contains(req.ScheduledAt, "+") {
-			if len(req.ScheduledAt) == 16 {
-				req.ScheduledAt += ":00Z"
-			} else if len(req.ScheduledAt) == 19 {
-				req.ScheduledAt += "Z"
+		customLayout := "02-01-2006 15:04"
+		isoLayout := "2006-01-02T15:04"
+
+		loc := time.FixedZone("WIB", 7*3600)
+
+		var t time.Time
+		var err error
+
+		t, err = time.ParseInLocation(customLayout, req.ScheduledAt, loc)
+		if err != nil {
+			t, err = time.ParseInLocation(isoLayout, req.ScheduledAt, loc)
+		}
+
+		if err == nil {
+			req.ScheduledAt = t.UTC().Format(time.RFC3339)
+		} else {
+			if !strings.Contains(req.ScheduledAt, "Z") && !strings.Contains(req.ScheduledAt, "+") {
+				if len(req.ScheduledAt) == 16 {
+					req.ScheduledAt += ":00Z"
+				} else if len(req.ScheduledAt) == 19 {
+					req.ScheduledAt += "Z"
+				}
 			}
 		}
 	}
@@ -85,7 +99,7 @@ func (h *ApiHandler) EmailHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// For standard form submission, we can redirect or show a simple message
+
 	w.Header().Set("Content-Type", "text/html")
 	if req.ScheduledAt != "" {
 		fmt.Fprintf(w, "<h2>Email berhasil dijadwalkan!</h2><p>ID: %s</p><a href='/'>Kembali</a>", emailID)
