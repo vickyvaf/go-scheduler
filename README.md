@@ -1,21 +1,18 @@
-# Go Scheduler 📧
+# Go Email Scheduler 📧
 
-A lightweight, modern web application for scheduling and sending emails using Go and Resend API. Featuring a clean UI built with HTMX and Tailwind CSS.
+A lightweight, minimal web application for scheduling and sending emails using Go and Resend API. Designed for simplicity and performance, the frontend uses plain HTML while the backend provides flexible handlers for both form and JSON requests.
 
 ## ✨ Features
 
-- **Modern UI**: Clean and minimal interface using Tailwind CSS v4.
-- **Rich Text Editor**: Integrated Quill editor for composing HTML emails.
-- **Real-time Feedback**: HTMX-powered form submission with loading states and success/error notifications.
-- **Backend Stability**: Built with Go's robust standard library and modern architectural patterns.
-- **Resend Integration**: Seamless email delivery via [Resend](https://resend.com/).
+- **Scheduled Delivery**: Specify a future date and time for emails to be sent automatically using Resend's scheduling capabilities.
+- **Multiple Recipients**: Support for sending to one or more recipients via comma-separated email addresses.
+- **Dual-Mode Handlers**: Backend supports both traditional HTML forms and modern JSON API submissions.
+- **Resend Integration**: Seamless delivery through the high-performance [Resend](https://resend.com/) API.
 
 ## 🚀 Tech Stack
 
 - **Backend**: [Go (Golang)](https://go.dev/)
-- **Frontend Interactivity**: [HTMX](https://htmx.org/)
-- **Styling**: [Tailwind CSS v4](https://tailwindcss.com/)
-- **Rich Text Editor**: [Quill.js](https://quilljs.com/)
+- **Frontend**: Plain HTML5 & Vanilla JavaScript
 - **Email Service**: [Resend API](https://resend.com/)
 
 ## 🛠️ Installation & Setup
@@ -34,14 +31,14 @@ A lightweight, modern web application for scheduling and sending emails using Go
    ```
 
 2. **Setup environment variables**
-   Copy the example environment file and fill in your Resend credentials.
+   Create a `.env` file from the example:
    ```bash
    cp .env.example .env
    ```
-   Edit `.env`:
+   Edit `.env` and fill in your details:
    ```env
    RESEND_CLIENT=your_resend_api_key
-   RESEND_FROM=sender@yourdomain.com
+   RESEND_FROM=onboarding@resend.dev
    PORT=8080
    ```
 
@@ -60,12 +57,13 @@ A lightweight, modern web application for scheduling and sending emails using Go
 
 ```text
 ├── internal/
-│   ├── handlers/    # HTTP Route handlers
-│   ├── models/      # Data structures for requests/responses
-│   └── services/    # Business logic (Email Service)
-├── main.go          # Application entry point
-├── index.html       # Single-page frontend template
-└── go.mod           # Go module definition
+│   ├── handlers/    # HTTP Route handlers (Form & JSON parsing)
+│   ├── models/      # Data structures for email requests
+│   └── services/    # Resend API service implementation
+├── main.go          # Server initialization and env loading
+├── index.html       # Minimal frontend with scheduling support
+├── go.mod           # Go dependencies
+└── .env             # Configuration (API keys, ports)
 ```
 
 ## 📝 API Endpoints
@@ -73,5 +71,10 @@ A lightweight, modern web application for scheduling and sending emails using Go
 | Method | Endpoint | Description |
 |--------|----------|-------------|
 | GET    | `/`      | Serves the main UI (index.html) |
-| POST   | `/email` | Sends an email (Accepts JSON or Form via HTMX) |
+| POST   | `/email` | Sends/Schedules an email (Accepts JSON or Form data) |
 
+## 💡 Usage
+
+To schedule an email, use the "Schedule At" field in the form. The system will automatically convert local browser time to the ISO 8601 UTC format required by the Resend API.
+
+Leave the schedule field empty to send the email immediately.

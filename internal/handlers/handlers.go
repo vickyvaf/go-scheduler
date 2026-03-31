@@ -6,6 +6,7 @@ import (
 	"go-scheduler/internal/models"
 	"go-scheduler/internal/services"
 	"net/http"
+	"strings"
 )
 
 type ApiHandler struct {
@@ -18,9 +19,6 @@ func NewApiHandler(service *services.EmailService) *ApiHandler {
 
 func (h *ApiHandler) RegisterHandlers(mux *http.ServeMux) {
 	mux.HandleFunc("/", h.IndexHandler)
-	mux.HandleFunc("/index.js", func(w http.ResponseWriter, r *http.Request) {
-		http.ServeFile(w, r, "index.js")
-	})
 	mux.HandleFunc("/email", h.EmailHandler)
 }
 
@@ -39,9 +37,36 @@ func (h *ApiHandler) EmailHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var req models.EmailRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "Invalid request body: "+err.Error(), http.StatusBadRequest)
-		return
+	contentType := r.Header.Get("Content-Type")
+
+	if strings.Contains(contentType, "application/json") {
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			http.Error(w, "Invalid request body: "+err.Error(), http.StatusBadRequest)
+			return
+		}
+	} else {
+		// Fallback to form data
+		if err := r.ParseForm(); err != nil {
+			http.Error(w, "Failed to parse form: "+err.Error(), http.StatusBadRequest)
+			return
+		}
+		req.To = r.FormValue("to")
+		req.Subject = r.FormValue("subject")
+		req.Html = r.FormValue("html")
+		req.ScheduledAt = r.FormValue("scheduled_at")
+	}
+
+	// Normalize ScheduledAt to ISO 8601 if needed
+	if req.ScheduledAt != "" {
+		// Browser datetime-local sends "YYYY-MM-DDTHH:MM" or "YYYY-MM-DDTHH:MM:SS"
+		// Resend expects ISO 8601 e.g. "2024-03-22T10:00:00Z"
+		if !strings.Contains(req.ScheduledAt, "Z") && !strings.Contains(req.ScheduledAt, "+") {
+			if len(req.ScheduledAt) == 16 {
+				req.ScheduledAt += ":00Z"
+			} else if len(req.ScheduledAt) == 19 {
+				req.ScheduledAt += "Z"
+			}
+		}
 	}
 
 	emailID, err := h.Service.Send(req)
@@ -60,9 +85,11 @@ func (h *ApiHandler) EmailHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(models.EmailResponse{
-		Message: "Email sent successfully",
-		EmailID: emailID,
-	})
+	// For standard form submission, we can redirect or show a simple message
+	w.Header().Set("Content-Type", "text/html")
+	if req.ScheduledAt != "" {
+		fmt.Fprintf(w, "<h2>Email berhasil dijadwalkan!</h2><p>ID: %s</p><a href='/'>Kembali</a>", emailID)
+	} else {
+		fmt.Fprintf(w, "<h2>Email berhasil dikirim!</h2><p>ID: %s</p><a href='/'>Kembali</a>", emailID)
+	}
 }

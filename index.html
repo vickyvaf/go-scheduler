@@ -1,181 +1,32 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Email Scheduler | Go + HTMX</title>
-
-    <!-- Tailwind CSS v4 Play CDN -->
-    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
-
-    <!-- HTMX and JSON Extension -->
-    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
-    <script src="https://unpkg.com/htmx.org/dist/ext/json-enc.js"></script>
-
-    <!-- Lucide Icons -->
-    <script src="https://unpkg.com/lucide@latest"></script>
-
-    <!-- Quill Rich Text Editor -->
-    <link href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet">
-    <script src="https://cdn.quilljs.com/1.3.6/quill.js"></script>
-
-    <!-- Flatpickr (Datetime Picker) -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
-    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
-
-    <style type="text/tailwindcss">
-        @theme {
-            --color-border: hsl(240 5.9% 90%);
-            --color-input: hsl(240 5.9% 90%);
-            --color-ring: hsl(240 5.9% 10%);
-            --color-background: hsl(0 0% 100%);
-            --color-foreground: hsl(240 10% 3.9%);
-            --color-primary: hsl(240 5.9% 10%);
-            --color-primary-foreground: hsl(0 0% 98%);
-            --color-muted: hsl(240 4.8% 95.9%);
-            --color-muted-foreground: hsl(240 3.8% 46.1%);
-            --color-card: hsl(0 0% 100%);
-            --color-card-foreground: hsl(240 10% 3.9%);
-            --radius-lg: 0.5rem;
-            --radius-md: calc(0.5rem - 2px);
-            --radius-sm: calc(0.5rem - 4px);
-
-            --color-popover: hsl(0 0% 100%);
-            --color-popover-foreground: hsl(240 10% 3.9%);
-            --color-accent: hsl(240 4.8% 95.9%);
-            --color-accent-foreground: hsl(240 5.9% 10%);
-        }
-
-        @layer base {
-            * {
-                @apply border-border;
-            }
-            body {
-                @apply bg-background text-foreground;
-                font-feature-settings: "rlig" 1, "calt" 1;
-            }
-        }
-
-        .htmx-indicator {
-            display: none;
-        }
-        .htmx-request .htmx-indicator {
-            display: inline-block;
-        }
-
-        /* Quill Custom Styling to match Shadcn-like UI */
-        .ql-toolbar.ql-snow {
-            @apply border-input rounded-t-md bg-slate-50/50;
-        }
-        .ql-container.ql-snow {
-            @apply border-input rounded-b-md bg-background text-sm;
-            min-height: 120px;
-        }
-
-        /* Shadcn-like Flatpickr Theme Overrides */
-        .flatpickr-calendar {
-            @apply shadow-lg border border-border rounded-md bg-popover text-popover-foreground;
-            font-family: inherit;
-            margin-top: 4px;
-        }
-        .flatpickr-day.selected, .flatpickr-day.startRange, .flatpickr-day.endRange {
-            @apply bg-primary text-primary-foreground border-primary;
-            border-radius: 4px;
-        }
-        .flatpickr-day:hover {
-            @apply bg-accent text-accent-foreground;
-        }
-        .flatpickr-months .flatpickr-month {
-            @apply text-foreground fill-foreground;
-        }
-        .flatpickr-current-month .flatpickr-monthDropdown-months {
-            @apply font-semibold;
-        }
-        .flatpickr-time {
-            @apply border-t border-border;
-        }
-        .flatpickr-innerContainer {
-            @apply p-2;
-        }
-        .flatpickr-calendar.static {
-            top: 100% !important;
-        }
-    </style>
+    <title>Go Email Scheduler</title>
 </head>
 
-<body class="min-h-screen flex items-center justify-center bg-slate-50/50 p-4">
-
-    <div class="w-full max-w-md bg-card text-card-foreground rounded-lg border shadow-sm">
-        <!-- Card Header -->
-        <div class="flex flex-col space-y-1.5 p-6">
-            <h3 class="text-2xl font-semibold leading-none tracking-tight">Email Scheduler</h3>
-            <p class="text-sm text-muted-foreground">Kirim email cepat dengan infrastruktur Go & Resend.</p>
+<body>
+    <h1>Email Scheduler</h1>
+    <form action="/email" method="POST">
+        <div>
+            <label>To:</label><br>
+            <input type="text" name="to" placeholder="email1@example.com, email2@example.com" required>
         </div>
-
-        <!-- Card Content -->
-        <div class="p-6 pt-0">
-            <form hx-post="/email" hx-ext="json-enc" hx-target="#response-msg" hx-swap="innerHTML"
-                hx-indicator="#loading" id="emailForm" class="space-y-4">
-
-                <div class="space-y-2">
-                    <label for="to"
-                        class="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-                        Email Penerima
-                    </label>
-                    <input type="text" id="to" name="to"
-                        class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                        placeholder="user@example.com, admin@example.com" required>
-                    <p class="text-[0.8rem] text-muted-foreground">Pisahkan dengan koma untuk banyak tujuan.</p>
-                </div>
-
-                <div class="space-y-2">
-                    <label for="subject" class="text-sm font-medium leading-none">Subjek</label>
-                    <input type="text" id="subject" name="subject"
-                        class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                        placeholder="Subject" required>
-                </div>
-
-                <div class="space-y-2">
-                    <label for="html" class="text-sm font-medium leading-none">Konten</label>
-                    <div id="editor-container">
-                        <div id="editor"></div>
-                    </div>
-                    <input type="hidden" id="html" name="html" required>
-                </div>
-
-                <div class="space-y-4">
-                    <div class="space-y-2">
-                        <label class="text-sm font-medium leading-none">Jadwalkan Pengiriman (Opsional)</label>
-                        <div id="datepicker-trigger" 
-                            class="flex h-10 w-full cursor-pointer items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background hover:bg-accent hover:text-accent-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2">
-                            <span id="date-label" class="text-muted-foreground">Pilih tanggal dan waktu...</span>
-                            <i data-lucide="calendar" class="h-4 w-4 opacity-50"></i>
-                        </div>
-                        <input type="hidden" id="scheduled_at" name="scheduled_at">
-                        <p class="text-[0.8rem] text-muted-foreground">Biarkan kosong untuk kirim sekarang.</p>
-                    </div>
-                </div>
-
-                <button type="submit" id="submitBtn"
-                    class="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2 w-full">
-                    Kirim Email
-                    <span id="loading" class="htmx-indicator ml-2">...</span>
-                </button>
-            </form>
+        <div>
+            <label>Subject:</label><br>
+            <input type="text" name="subject" required>
         </div>
-
-        <!-- Card Footer (Response) -->
-        <div id="response" class="p-6 pt-0 hidden">
-            <div id="alert-container"
-                class="relative w-full rounded-lg border p-4 [&>svg~*]:pl-7 [&>svg]:absolute [&>svg]:left-4 [&>svg]:top-4 [&>svg]:text-foreground">
-                <div id="response-msg" class="text-sm font-medium"></div>
-            </div>
+        <div>
+            <label>Content:</label><br>
+            <textarea name="html" rows="10" cols="50" required></textarea>
         </div>
-    </div>
-
-    <script src="index.js"></script>
-
+        <div>
+            <label>Schedule At</label><br>
+            <input type="datetime-local" name="scheduled_at">
+        </div>
+        <br>
+        <button type="submit">Send Email</button>
+    </form>
 </body>
 
 </html>
